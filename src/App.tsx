@@ -1,10 +1,13 @@
 import React, { useState, useEffect, createContext, useContext } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { api } from './services/api';
 import Login from './components/Auth/Login';
+import Register from './components/Auth/Register';
 import ClientHome from './components/Client/Home';
 import AdminDashboard from './components/Admin/Dashboard';
 import { Loader2 } from 'lucide-react';
+import { auth } from './lib/firebase';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 
 const AuthContext = createContext<any>(null);
 
@@ -14,35 +17,23 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const checkAuth = async () => {
-    const token = localStorage.getItem('token');
-    if (!token) {
-      setLoading(false);
-      return;
-    }
-    try {
-      const userData = await api.getMe();
-      
-      // Check for VIP expiry
-      if (userData.role !== 'admin' && userData.expiryDate) {
-        if (new Date(userData.expiryDate) < new Date()) {
-          localStorage.removeItem('token');
-          setUser(null);
-          setLoading(false);
-          return;
-        }
-      }
-      
-      setUser(userData);
-    } catch (err) {
-      localStorage.removeItem('token');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    checkAuth();
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          const userData = await api.getMe();
+          setUser(userData);
+        } catch (err) {
+          console.error("Auth sync error:", err);
+          setUser(null);
+        }
+      } else {
+        setUser(null);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const login = async (credentials: any) => {
@@ -51,13 +42,13 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
     return data.user;
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
+  const logout = async () => {
+    await signOut(auth);
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, checkAuth }}>
+    <AuthContext.Provider value={{ user, loading, login, logout }}>
       {loading ? (
         <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">
           <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
@@ -80,6 +71,7 @@ export default function App() {
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
           <Route 
             path="/" 
             element={

@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import cors from "cors";
 import { fileURLToPath } from "url";
 
 const getDbFile = () => {
@@ -89,7 +90,24 @@ function writeDB(data: any) {
 
 async function startServer() {
   const app = express();
+  app.use(cors());
   app.use(express.json());
+
+  // Request Logging
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+    next();
+  });
+
+  // Health and Debug
+  app.get("/api/health", (req, res) => {
+    res.json({ 
+      status: "ok", 
+      time: new Date().toISOString(),
+      dbLocation: DB_FILE,
+      env: process.env.NODE_ENV
+    });
+  });
 
   // --- Auth Middleware ---
   const authenticateToken = (req: any, res: any, next: any) => {
@@ -316,6 +334,18 @@ async function startServer() {
     db.users = db.users.filter((u: any) => u.id !== req.params.id);
     writeDB(db);
     res.json({ success: true });
+  });
+
+  // Catch-all for unknown API routes
+  app.all("/api/*", (req: any, res: any) => {
+    console.warn(`404 API Route: ${req.method} ${req.url}`);
+    res.status(404).json({ message: `Rota de API não encontrada: ${req.method} ${req.url}` });
+  });
+
+  // Global Error Handler for API
+  app.use("/api", (err: any, req: any, res: any, next: any) => {
+    console.error("API Error:", err);
+    res.status(500).json({ message: "Erro interno no servidor de API", error: err.message });
   });
 
   // --- Vite / Frontend Setup ---

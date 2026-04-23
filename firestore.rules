@@ -8,26 +8,20 @@ service cloud.firestore {
     }
 
     // --- Helpers ---
-    function isSignedIn() { return request.auth != null; }
-    function docData(path) { return get(/databases/$(database)/documents/ + path).data; }
-    
-    function isSuperAdmin() { 
-      return isSignedIn() && docData('users/' + request.auth.uid).username == 'RafaelGtz'; 
-    }
-    
-    function isAdmin() { 
-      return isSignedIn() && docData('users/' + request.auth.uid).role == 'admin'; 
+    function isSignedIn() {
+      return request.auth != null;
     }
 
-    function isValidId(id) { 
-      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); 
+    function isSuperAdmin() {
+      return isSignedIn() && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'RafaelGtz';
     }
 
-    // --- User Validation ---
-    function isValidUser(data) {
-      return data.username is string && data.username.size() <= 40
-        && data.role in ['admin', 'user']
-        && data.status in ['pending', 'active', 'rejected'];
+    function isAdmin() {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.username == 'RafaelGtz'
+      );
     }
 
     // --- Collections ---
@@ -35,15 +29,13 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn() && (request.auth.uid == userId || isSuperAdmin());
       
-      // Allow registration or admin creation
-      allow create: if isSignedIn() && isValidUser(request.resource.data);
+      // Allow registration (pending status by default in code)
+      allow create: if isSignedIn() && request.resource.data.username is string;
       
-      allow update: if isSuperAdmin() && isValidUser(request.resource.data) && (
-        // Prevent editing Super Admin by others (redundant but safe)
-        docData('users/' + userId).username != 'RafaelGtz' || request.auth.uid == userId
-      );
+      // Admin/SuperAdmin can update status, expiry, etc.
+      allow update: if isSuperAdmin() || (isAdmin() && userId != request.auth.uid);
       
-      allow delete: if isSuperAdmin() && docData('users/' + userId).username != 'RafaelGtz';
+      allow delete: if isSuperAdmin() && userId != request.auth.uid;
     }
 
     match /posts/{postId} {

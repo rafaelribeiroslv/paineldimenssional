@@ -117,10 +117,20 @@ export default function Login() {
               href="https://wa.me/558494792723"
               target="_blank"
               rel="noreferrer"
-              className="w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest py-3 rounded-xl bg-green-600/10 text-green-500 border border-green-500/20 hover:bg-green-600/20 transition-all"
+              className="w-full flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest py-3 rounded-xl bg-green-600/10 text-green-500 border border-green-500/20 hover:bg-green-600/20 transition-all mb-4"
             >
               Suporte WhatsApp
             </a>
+
+            <div className="text-center">
+              <button 
+                type="button"
+                onClick={() => navigate('/register')}
+                className="text-[10px] text-stone-500 hover:text-amber-500 uppercase tracking-widest font-bold transition-colors"
+              >
+                Não tem conta? Solicite Acesso
+              </button>
+            </div>
           </form>
 
           <p className="mt-8 text-center text-[10px] text-slate-600 uppercase tracking-widest font-medium">
