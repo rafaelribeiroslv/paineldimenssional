@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Additional user data including VIP status and roles",
+      "type": "object",
+      "properties": {
+        "username": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "expiryDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["pending", "active", "rejected"] },
+        "rejectedBy": { "type": "string" },
+        "createdBy": { "type": "string" }
+      },
+      "required": ["username", "role", "status"]
+    },
+    "Post": {
+      "title": "Content Post",
+      "description": "Educational dimensional content",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "image": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "content", "createdAt"]
+    },
+    "Category": {
+      "title": "Post Category",
+      "description": "Content categorization",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/posts/{postId}": {
+      "schema": "Post",
+      "description": "Portal contents"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Portal categories"
+    }
+  }
+}

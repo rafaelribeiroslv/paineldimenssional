@@ -6,8 +6,23 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { fileURLToPath } from "url";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_FILE = path.join(__dirname, "db.json");
+const getDbFile = () => {
+  const localPath = path.join(process.cwd(), "db.json");
+  try {
+    if (fs.existsSync(localPath)) {
+      fs.accessSync(localPath, fs.constants.W_OK);
+      return localPath;
+    }
+    // Try to create it to check writability
+    fs.writeFileSync(localPath, JSON.stringify(initialData, null, 2));
+    return localPath;
+  } catch (err) {
+    console.warn("Root directory not writable, using /tmp/db.json");
+    return path.join("/tmp", "db.json");
+  }
+};
+
+const DB_FILE = getDbFile();
 const PORT = 3000;
 const JWT_SECRET = process.env.JWT_SECRET || "dimension-secret-key-123";
 
@@ -48,15 +63,28 @@ const initialData = {
 
 // Database Helpers
 function readDB() {
-  if (!fs.existsSync(DB_FILE)) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
-    return initialData;
+  try {
+    if (!fs.existsSync(DB_FILE)) {
+      console.log("Creating initial database...");
+      fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+      return initialData;
+    }
+    const data = fs.readFileSync(DB_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (error) {
+    console.error("Error reading database:", error);
+    return initialData; // Fallback to initial data if read fails
   }
-  return JSON.parse(fs.readFileSync(DB_FILE, "utf-8"));
 }
 
 function writeDB(data: any) {
-  fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error("Error writing to database:", error);
+    // In ephemeral file systems (like Cloud Run), this might fail.
+    // We log it but the app might lose state on restart.
+  }
 }
 
 async function startServer() {
@@ -306,7 +334,9 @@ async function startServer() {
   }
 
   app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+    console.log(`Server environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Server running at http://0.0.0.0:${PORT}`);
+    console.log(`DB File Location: ${DB_FILE}`);
   });
 }
 

@@ -1,13 +1,21 @@
 export const api = {
   async fetch(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem('token');
+    
+    // Suporte para URL absoluta em ambientes de hospedagem externa
+    const baseUrl = window.location.origin.includes('github.io') 
+      ? 'https://ais-pre-fwov3hkj5zlgfx4lrbfmxl-625006080676.us-east1.run.app' // Substitua pela sua URL real do Cloud Run
+      : '';
+    
+    const url = endpoint.startsWith('http') ? endpoint : `${baseUrl}${endpoint}`;
+
     const headers = {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...(options.headers || {})
     };
 
-    const response = await fetch(endpoint, { ...options, headers });
+    const response = await fetch(url, { ...options, headers });
     
     if (response.status === 401 || response.status === 403) {
       localStorage.removeItem('token');
@@ -16,12 +24,22 @@ export const api = {
       }
     }
 
+    const contentType = response.headers.get('content-type');
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: 'Erro desconhecido' }));
-      throw new Error(error.message || 'Falha na requisição');
+      if (contentType && contentType.includes('application/json')) {
+        const error = await response.json();
+        throw new Error(error.message || 'Falha na requisição');
+      } else {
+        const text = await response.text();
+        console.error('Non-JSON Error Response:', text);
+        throw new Error(`Erro do Servidor (${response.status}): O servidor não retornou JSON.`);
+      }
     }
 
-    return response.json();
+    if (contentType && contentType.includes('application/json')) {
+      return response.json();
+    }
+    return response;
   },
 
   async login(credentials: any) {
