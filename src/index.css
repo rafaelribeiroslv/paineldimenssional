@@ -1,0 +1,50 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Space Grotesk", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+  
+  --color-dimension-bg: #050505;
+  --color-dimension-accent: #d4af37; /* Gold */
+  --color-dimension-card: rgba(18, 18, 18, 0.6);
+  --color-dimension-line: #2a2210; /* Dark Gold/Brown line */
+}
+
+@layer base {
+  body {
+    @apply bg-dimension-bg text-stone-200 font-body selection:bg-amber-500 selection:text-black;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1, h2, h3, h4 {
+    @apply font-display tracking-tight;
+  }
+}
+
+@layer components {
+  .bento-card {
+    @apply bg-dimension-card backdrop-blur-md border border-dimension-line rounded-3xl transition-all duration-300;
+  }
+
+  .btn-primary {
+    @apply px-6 py-3 bg-amber-600 text-black font-bold rounded-xl hover:bg-amber-500 hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 shadow-lg shadow-amber-500/20;
+  }
+
+  .news-image-container {
+    @apply relative overflow-hidden bg-stone-900;
+  }
+}
+
+/* Custom glow effect */
+.glow-gold {
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.2);
+}
+
+/* Bento Grid Specifics */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-auto-rows: minmax(100px, auto);
+  gap: 1.25rem;
+}
