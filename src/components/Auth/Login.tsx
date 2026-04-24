@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { api } from '../../services/api';
 import { useAuth } from '../../App';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
@@ -20,7 +21,24 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const user = await login({ username, password });
+      let user;
+      try {
+        user = await login({ username, password });
+      } catch (err: any) {
+        // If it's the designated super admin and they don't exist, try bootstrapping
+        if (username === 'RafaelGtz' && (err.message.includes('Usuário ou senha incorretos') || err.message.includes('não encontrado'))) {
+          try {
+            const result = await api.bootstrapSuperAdmin({ username, password });
+            user = result.user;
+          } catch (bootstrapErr) {
+            // If bootstrap also fails (e.g. auth user exists but firestore doc doesn't, though the catch above handles many things)
+            // we re-throw the original error or the bootstrap error
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
       
       // Verification logic based on tab
       if (activeTab === 'admin' && user.role !== 'admin') {

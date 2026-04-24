@@ -31,6 +31,28 @@ export const api = {
     throw new Error(error.message || 'Falha na comunicação dimensional');
   },
 
+  async bootstrapSuperAdmin(credentials: { username: string, password: string }) {
+    try {
+      const { createUserWithEmailAndPassword } = await import('firebase/auth');
+      const { setDoc, doc } = await import('firebase/firestore');
+      
+      const email = `${credentials.username.toLowerCase()}@dimensional.com`;
+      const userCredential = await createUserWithEmailAndPassword(auth, email, credentials.password);
+      
+      await setDoc(doc(db, USER_COLLECTION, userCredential.user.uid), {
+        username: credentials.username,
+        role: 'admin',
+        status: 'active',
+        createdAt: serverTimestamp(),
+        expiryDate: null
+      });
+      
+      return { user: { id: userCredential.user.uid, username: credentials.username, role: 'admin', status: 'active' } };
+    } catch (err: any) {
+      throw this.handleError(err);
+    }
+  },
+
   async login(credentials: { username: string, password: string }) {
     try {
       // We simulate username login by appending a dummy domain for Firebase Auth
@@ -161,13 +183,29 @@ export const api = {
 
   async createUser(userData: any) {
     // Note: Creating a user in Firebase Auth requires Admin SDK or client-side createUserWithEmailAndPassword
-    // For simplicity in this demo, we'll assume the Admin will use a dedicated function 
-    // but in a real app, users usually register themselves or use Firebase Admin.
-    // Here we'll just save to Firestore and suggest the admin to handle Auth.
+    // Since createUserWithEmailAndPassword signs out the current session, we inform the admin.
     try {
-      // In a real scenario, you'd use a Cloud Function to create the Auth user.
-      throw new Error("A criação de usuários agora deve ser feita via Registro (Firebase Auth) ou Cloud Functions para segurança.");
-    } catch (err) {
+      const { setDoc, doc } = await import('firebase/firestore');
+      
+      // We create the Firestore document first. 
+      // The user will still need to Register with this SAME username/password to link the account,
+      // or the admin creates them and the user just signs up.
+      // But for a better flow, we suggest the Register page.
+      
+      const userId = userData.username.toLowerCase(); // Temporary ID or we could use a random one
+      await setDoc(doc(db, USER_COLLECTION, userId), {
+        username: userData.username,
+        role: userData.role || 'user',
+        status: 'active',
+        createdAt: serverTimestamp(),
+        expiryDate: userData.expiryDate ? Timestamp.fromDate(new Date(userData.expiryDate)) : null
+      });
+
+      return { success: true, message: "Perfil criado no banco de dados. O usuário deve agora se registrar com este mesmo nome para vincular o acesso." };
+    } catch (err: any) {
+      if (err.message.includes('permission-denied')) {
+        throw new Error("Você não tem permissão para criar usuários. Verifique se é o Admin Supremo.");
+      }
       throw this.handleError(err);
     }
   },
