@@ -213,8 +213,8 @@ export const api = {
   async updateUser(id: string, userData: any) {
     try {
       const updateData = { ...userData };
-      if (userData.expiryDate) {
-        updateData.expiryDate = Timestamp.fromDate(new Date(userData.expiryDate));
+      if (userData.expiryDate !== undefined) {
+        updateData.expiryDate = userData.expiryDate ? Timestamp.fromDate(new Date(userData.expiryDate)) : null;
       }
       await updateDoc(doc(db, USER_COLLECTION, id), updateData);
       return { success: true };

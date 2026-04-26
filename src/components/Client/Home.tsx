@@ -306,7 +306,13 @@ export default function ClientHome() {
                   <div className="mt-auto flex justify-between items-center border-t border-white/5 pt-6">
                     <span className="text-[9px] text-stone-600 font-bold uppercase tracking-widest flex items-center gap-2">
                       <Clock className="w-3 h-3" />
-                      {new Date(post.createdAt).toLocaleDateString('pt-BR')}
+                      {(() => {
+                        try {
+                          return post.createdAt ? new Date(post.createdAt).toLocaleDateString('pt-BR') : 'Sem data';
+                        } catch (e) {
+                          return 'Data Inválida';
+                        }
+                      })()}
                     </span>
                     <button 
                       onClick={() => setExpandedPost(expandedPost === post.id ? null : post.id)}

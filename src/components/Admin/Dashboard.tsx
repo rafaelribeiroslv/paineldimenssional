@@ -43,7 +43,17 @@ export default function AdminDashboard() {
         api.getPosts(),
         api.getCategories()
       ]);
-      setUsers(u);
+      
+      // Sort users: SuperAdmin first, then Admins, then VIPs
+      const sortedUsers = [...u].sort((a: any, b: any) => {
+        if (a.username === 'RafaelGtz') return -1;
+        if (b.username === 'RafaelGtz') return 1;
+        if (a.role === 'admin' && b.role !== 'admin') return -1;
+        if (a.role !== 'admin' && b.role === 'admin') return 1;
+        return (a.username || '').localeCompare(b.username || '');
+      });
+
+      setUsers(sortedUsers);
       setPosts(p);
       setCategories(c);
     } catch (err) {
@@ -165,24 +175,37 @@ export default function AdminDashboard() {
 
   const startEditingPost = (post: any) => {
     setEditingPostId(post.id);
-    setNewPost({ title: post.title, content: post.content, image: post.image, categoryId: post.categoryId || '' });
+    setNewPost({ 
+      title: post.title || '', 
+      content: post.content || '', 
+      image: post.image || '', 
+      categoryId: post.categoryId || '' 
+    });
+    // Scroll to top to see form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const startEditingUser = (user: any) => {
     setEditingUserId(user.id);
     let dateStr = '';
     if (user.expiryDate) {
-      const date = new Date(user.expiryDate);
-      dateStr = date.toISOString().slice(0, 16);
+      try {
+        const date = new Date(user.expiryDate);
+        if (!isNaN(date.getTime())) {
+          dateStr = date.toISOString().slice(0, 16);
+        }
+      } catch (e) {}
     }
     setNewUser({ 
-      username: user.username, 
+      username: user.username || '', 
       password: '', 
       expiryDate: dateStr,
       role: user.role || 'user',
       duration: { d: 0, h: 0, m: 0 },
       isEternal: !user.expiryDate
     });
+    // Scroll to top to see form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const cancelEdit = () => {
@@ -488,7 +511,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {(searchQuery.trim() ? users.filter(u => u.username.toLowerCase().includes(searchQuery.toLowerCase())) : users).map(u => {
+                        {(searchQuery.trim() ? users.filter(u => (u.username || '').toLowerCase().includes(searchQuery.toLowerCase())) : users).map(u => {
                           const isSuperAdmin = u.username === 'RafaelGtz';
                           const isAdmin = u.role === 'admin' && !isSuperAdmin;
                           const isPermanent = !u.expiryDate && u.role !== 'admin';
@@ -534,7 +557,13 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td className={`px-6 py-4 text-sm font-mono ${isPermanent ? 'text-green-500' : isExpiring ? 'text-red-400' : 'text-slate-400'}`}>
-                                {u.expiryDate ? format(new Date(u.expiryDate), 'dd/MM/yyyy HH:mm') : (u.role === 'admin' ? 'Vitalício' : 'Permanente')}
+                                {u.expiryDate ? (() => {
+                                  try {
+                                    return format(new Date(u.expiryDate), 'dd/MM/yyyy HH:mm');
+                                  } catch (e) {
+                                    return 'Data Inválida';
+                                  }
+                                })() : (u.role === 'admin' ? 'Vitalício' : 'Permanente')}
                               </td>
                               <td className="px-6 py-4 text-right space-x-2">
                                 {user?.username === 'RafaelGtz' && u.status === 'pending' && (
@@ -575,7 +604,7 @@ export default function AdminDashboard() {
                 </div>
               ) : activeTab === 'posts' ? (
                 <div className="grid grid-cols-1 gap-6">
-                    {posts.filter(p => p.title.toLowerCase().includes(searchQuery.toLowerCase()) || p.content.toLowerCase().includes(searchQuery.toLowerCase())).map(post => (
+                    {posts.filter(p => (p.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || (p.content || '').toLowerCase().includes(searchQuery.toLowerCase())).map(post => (
                       <motion.div 
                         key={post.id} 
                         initial={{ opacity: 0 }}
@@ -608,7 +637,15 @@ export default function AdminDashboard() {
                             <p className="text-xs text-stone-400 line-clamp-2 leading-relaxed">{post.content}</p>
                           </div>
                           <div className="flex justify-between items-center mt-4">
-                            <span className="text-[10px] text-stone-600 uppercase font-bold tracking-widest">{format(new Date(post.createdAt), 'dd MMM yyyy')}</span>
+                            <span className="text-[10px] text-stone-600 uppercase font-bold tracking-widest">
+                              {(() => {
+                                try {
+                                  return post.createdAt ? format(new Date(post.createdAt), 'dd MMM yyyy') : 'Sem data';
+                                } catch (e) {
+                                  return 'Data Inválida';
+                                }
+                              })()}
+                            </span>
                           </div>
                         </div>
                       </motion.div>
@@ -627,7 +664,7 @@ export default function AdminDashboard() {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-white/5">
-                        {categories.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase())).map(c => (
+                        {categories.filter(c => (c.name || '').toLowerCase().includes(searchQuery.toLowerCase())).map(c => (
                           <tr key={c.id} className="hover:bg-amber-500/5 transition-colors">
                             <td className="px-6 py-4 font-semibold text-stone-200">{c.name}</td>
                             <td className="px-6 py-4 text-xs text-stone-500 font-mono">{c.id}</td>
