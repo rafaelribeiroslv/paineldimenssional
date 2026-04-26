@@ -182,18 +182,44 @@ export const api = {
   },
 
   async createUser(userData: any) {
-    // Note: Creating a user in Firebase Auth requires Admin SDK or client-side createUserWithEmailAndPassword
-    // Since createUserWithEmailAndPassword signs out the current session, we inform the admin.
     try {
       const { setDoc, doc } = await import('firebase/firestore');
+      const { initializeApp, getApps, getApp } = await import('firebase/app');
+      const { getAuth, createUserWithEmailAndPassword, signOut: signOutAuth } = await import('firebase/auth');
       
-      // We create the Firestore document first. 
-      // The user will still need to Register with this SAME username/password to link the account,
-      // or the admin creates them and the user just signs up.
-      // But for a better flow, we suggest the Register page.
+      // Get config from existing app or use hardcoded (better to get from a config file)
+      // Since we don't have easy access to the config object here without re-reading it or importing it,
+      // and we know it's in lib/firebase.ts, I'll temporarily use the known config or try to derive it.
+      // Better way: import it.
       
-      const userId = userData.username.toLowerCase(); // Temporary ID or we could use a random one
-      await setDoc(doc(db, USER_COLLECTION, userId), {
+      const email = `${userData.username.toLowerCase()}@dimensional.com`;
+      const password = userData.password;
+
+      // Initialize a secondary app to create user without signing out admin
+      const secondaryAppName = `AdminHelper_${Date.now()}`;
+      const secondaryApp = initializeApp(auth.app.options, secondaryAppName);
+      const secondaryAuth = getAuth(secondaryApp);
+      
+      let uid: string;
+      try {
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+        uid = userCredential.user.uid;
+        // Sign out from the temporary app
+        await signOutAuth(secondaryAuth);
+      } catch (authErr: any) {
+        const { deleteApp } = await import('firebase/app');
+        await deleteApp(secondaryApp);
+        
+        if (authErr.code === 'auth/email-already-in-use') {
+          throw new Error("Este nome de usuário já está sendo usado no sistema de autenticação.");
+        }
+        throw authErr;
+      }
+
+      const { deleteApp } = await import('firebase/app');
+      await deleteApp(secondaryApp);
+
+      await setDoc(doc(db, USER_COLLECTION, uid), {
         username: userData.username,
         role: userData.role || 'user',
         status: 'active',
@@ -201,7 +227,7 @@ export const api = {
         expiryDate: userData.expiryDate ? Timestamp.fromDate(new Date(userData.expiryDate)) : null
       });
 
-      return { success: true, message: "Perfil criado no banco de dados. O usuário deve agora se registrar com este mesmo nome para vincular o acesso." };
+      return { success: true, message: "Usuário criado com sucesso e pronto para acesso." };
     } catch (err: any) {
       if (err.message.includes('permission-denied')) {
         throw new Error("Você não tem permissão para criar usuários. Verifique se é o Admin Supremo.");
