@@ -50,18 +50,22 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
-      {loading ? (
-        <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">
-          <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
-        </div>
-      ) : children}
+      {children}
     </AuthContext.Provider>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen bg-[#050505] flex items-center justify-center text-white">
+      <Loader2 className="w-8 h-8 animate-spin text-amber-600" />
+    </div>
   );
 }
 
 function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, toggleMusic: () => void }) {
   const location = useLocation();
-  const isAmbientPage = ['/landing', '/login'].includes(location.pathname);
+  const isAmbientPage = ['/', '/login'].includes(location.pathname);
 
   return (
     <div className="fixed top-6 right-6 z-[100]">
@@ -96,7 +100,7 @@ function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, toggleMus
       )}
 
       {/* Hidden YouTube Iframe - stays mounted to keep music playing */}
-      <div className="absolute opacity-0 pointer-events-none overflow-hidden h-0 w-0">
+      <div className="fixed top-0 left-0 w-[1px] h-[1px] opacity-0 pointer-events-none overflow-hidden">
         {isPlaying && (
           <iframe
             width="100"
@@ -113,9 +117,10 @@ function MusicPlayer({ isPlaying, toggleMusic }: { isPlaying: boolean, toggleMus
 }
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode, adminOnly?: boolean }) {
-  const { user } = useAuth();
-  if (!user) return <Navigate to="/login" />;
-  if (adminOnly && user.role !== 'admin') return <Navigate to="/" />;
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingScreen />;
+  if (!user) return <Navigate to="/" />;
+  if (adminOnly && user.role !== 'admin') return <Navigate to="/me" />;
   return <>{children}</>;
 }
 
@@ -127,10 +132,10 @@ export default function App() {
       <AuthProvider>
         <MusicPlayer isPlaying={isMusicStarted} toggleMusic={() => setIsMusicStarted(!isMusicStarted)} />
         <Routes>
-          <Route path="/landing" element={<Landing onStart={() => setIsMusicStarted(true)} />} />
+          <Route path="/" element={<Landing onStart={() => setIsMusicStarted(true)} />} />
           <Route path="/login" element={<Login />} />
           <Route 
-            path="/" 
+            path="/me" 
             element={
               <ProtectedRoute>
                 <ClientHome />
@@ -145,7 +150,7 @@ export default function App() {
               </ProtectedRoute>
             } 
           />
-          <Route path="*" element={<Navigate to="/landing" />} />
+          <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AuthProvider>
     </Router>

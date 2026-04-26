@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'motion/react';
+import { useAuth } from '../App';
 
 interface LandingProps {
   onStart: () => void;
@@ -8,27 +9,36 @@ interface LandingProps {
 
 const Landing: React.FC<LandingProps> = ({ onStart }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleStart = () => {
     onStart();
-    navigate('/login');
+    if (user) {
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/me');
+      }
+    } else {
+      navigate('/login');
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-[#050505] flex flex-col items-center justify-center relative overflow-hidden font-body selection:bg-amber-500 selection:text-black">
       {/* Dynamic Background */}
-      <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#d4af37 1.5px, transparent 1.5px)', backgroundSize: '40px 40px' }}></div>
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/5 rounded-full blur-[150px] animate-pulse"></div>
+      <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(#d4af37 1.5px, transparent 1.5px)', backgroundSize: '40px 40px' }}></div>
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-amber-600/5 rounded-full blur-[150px] animate-pulse pointer-events-none"></div>
       
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
-        className="z-10 flex flex-col items-center"
+        transition={{ duration: 1 }}
+        className="z-10 flex flex-col items-center px-4"
       >
-        <div className="mb-12 relative">
+        <div className="mb-16 relative">
           <motion.h1 
-            className="text-6xl md:text-8xl font-black text-white uppercase tracking-[0.3em] text-center filter drop-shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+            className="text-5xl md:text-8xl font-black text-white uppercase tracking-[0.2em] md:tracking-[0.3em] text-center filter drop-shadow-[0_0_15px_rgba(212,175,55,0.3)] font-display"
             animate={{ 
               textShadow: [
                 "0 0 20px rgba(212,175,55,0.2)",
@@ -36,51 +46,54 @@ const Landing: React.FC<LandingProps> = ({ onStart }) => {
                 "0 0 20px rgba(212,175,55,0.2)"
               ]
             }}
-            transition={{ duration: 2, repeat: Infinity }}
+            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
           >
             Dimensional
           </motion.h1>
-          <div className="h-1 w-full bg-gradient-to-r from-transparent via-amber-500 to-transparent mt-4"></div>
+          <motion.div 
+            initial={{ width: 0 }}
+            animate={{ width: "100%" }}
+            transition={{ delay: 0.5, duration: 1 }}
+            className="h-1 bg-gradient-to-r from-transparent via-amber-500 to-transparent mt-6"
+          ></motion.div>
         </div>
 
         {/* RGB Animated Button */}
-        <div className="relative group">
-          {/* RGB Border Animation Overlay */}
-          <div className="absolute -inset-[2px] bg-gradient-to-r from-red-500 via-blue-500 to-green-500 rounded-lg blur-md opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-gradient-x"></div>
+        <div className="relative group cursor-pointer" onClick={handleStart}>
+          {/* Animated RBG Background */}
+          <div className="absolute -inset-[2px] bg-gradient-to-r from-red-600 via-purple-600 to-blue-600 rounded-xl opacity-75 group-hover:opacity-100 blur-sm transition duration-1000 group-hover:duration-200 animate-rgb-border"></div>
           
           <button
-            onClick={handleStart}
-            className="relative px-12 py-5 bg-black rounded-lg leading-none flex items-center divide-x divide-white/10"
+            className="relative px-16 py-6 bg-black rounded-lg leading-none flex items-center transition-transform active:scale-95"
           >
-            <span className="flex items-center space-x-5">
-              <span className="text-white text-2xl font-black uppercase tracking-[0.2em] italic pr-2">INICIAR</span>
+            <span className="text-white text-3xl font-black uppercase tracking-[0.2em] italic font-display">
+              INICIAR
             </span>
           </button>
         </div>
 
-        <motion.p 
-          className="mt-12 text-stone-500 text-[10px] uppercase tracking-[0.5em] font-bold"
-          animate={{ opacity: [0.3, 0.6, 0.3] }}
-          transition={{ duration: 3, repeat: Infinity }}
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 1 }}
+          className="mt-16 flex flex-col items-center gap-2"
         >
-          Acesso Restrito &bullet; Protocolo V2.4
-        </motion.p>
+          <div className="px-4 py-1 border border-zinc-800 rounded-full bg-zinc-900/50">
+            <p className="text-zinc-500 text-[9px] uppercase tracking-[0.4em] font-bold">
+              Protocolo Dimensionais &bullet; V.2.4
+            </p>
+          </div>
+          <p className="text-zinc-700 text-[8px] uppercase tracking-widest font-medium">Aguardando Iniciação</p>
+        </motion.div>
       </motion.div>
 
       <style dangerouslySetInnerHTML={{ __html: `
-        @keyframes gradient-x {
-          0%, 100% {
-            background-position: 0% 50%;
-            background-image: linear-gradient(to right, #ff0000, #ff7f00, #ffff00, #00ff00, #0000ff, #4b0082, #8b00ff);
-          }
-          50% {
-            background-position: 100% 50%;
-            background-image: linear-gradient(to right, #8b00ff, #4b0082, #0000ff, #00ff00, #ffff00, #ff7f00, #ff0000);
-          }
+        @keyframes rgb-border {
+          0% { filter: hue-rotate(0deg); }
+          100% { filter: hue-rotate(360deg); }
         }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 3s linear infinite;
+        .animate-rgb-border {
+          animation: rgb-border 4s linear infinite;
         }
       `}} />
     </div>

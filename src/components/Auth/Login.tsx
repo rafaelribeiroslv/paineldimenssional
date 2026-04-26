@@ -12,14 +12,24 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { login, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (user.role === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/me');
+      }
+    }
+  }, [user, authLoading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
+    setIsSubmitting(true);
     try {
       let user;
       try {
@@ -48,12 +58,12 @@ export default function Login() {
       if (activeTab === 'admin' && user.role === 'admin') {
         navigate('/admin');
       } else {
-        navigate('/');
+        navigate('/me');
       }
     } catch (err: any) {
       setError(err.message || 'Falha ao entrar');
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -125,10 +135,10 @@ export default function Login() {
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={isSubmitting}
               className="w-full text-xs font-bold uppercase tracking-[0.2em] py-4 rounded-xl bg-amber-600 text-black shadow-lg shadow-amber-500/20 hover:bg-amber-500 transition-all shadow-lg active:scale-95 disabled:opacity-50"
             >
-              {loading ? 'Validando...' : 'Validar Identidade'}
+              {isSubmitting ? 'Validando...' : 'Validar Identidade'}
             </button>
 
             <a 
